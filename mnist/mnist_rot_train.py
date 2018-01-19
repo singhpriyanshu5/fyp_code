@@ -46,6 +46,9 @@ parser.add_argument('--log_frequency', type=int, default=10,
 parser.add_argument('--continue_checkpoint', type=bool, default=False,
                     help='Whether to continue training from checkpoint state of variables.')
 
+parser.add_argument('--rotation_only', type=bool, default=False,
+                    help='Whether to train the model on only rotated images or original plus the rotated images')
+
 BATCH_SIZE = mnist_rot_main.BATCH_SIZE
 
 
@@ -58,7 +61,7 @@ def train():
     # Force input pipeline to CPU:0 to avoid operations sometimes ending up on
     # GPU and resulting in a slow down.
     with tf.device('/cpu:0'):
-      images, labels = mnist_rot_main.distorted_inputs()
+      images, labels = mnist_rot_main.distorted_inputs(FLAGS.rotation_only)
       images = tf.reshape(images, [-1,28,28,1])
 
     # Build a Graph that computes the logits predictions from the
