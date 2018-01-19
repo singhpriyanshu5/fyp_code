@@ -139,10 +139,10 @@ def distorted_inputs(rotation_only):
   """
   if not DATA_DIR:
     raise ValueError('Please supply a data_dir')
-    
+
   mnist = read_data_sets(DATA_DIR, one_hot=False)
   effective_batch_size = BATCH_SIZE
-  if rotation_only:
+  if not rotation_only:
       effective_batch_size = BATCH_SIZE//2
   images, labels = mnist.train.next_batch(effective_batch_size)
    #create a vector of random angles in radians (between 0.1 and 6.28)
@@ -158,7 +158,7 @@ def distorted_inputs(rotation_only):
   return images, labels
 
 
-def inputs(eval_data):
+def inputs(eval_data, rotation_only):
   """Construct input for CIFAR evaluation using the Reader ops.
 
   Args:
@@ -174,9 +174,22 @@ def inputs(eval_data):
   if not DATA_DIR:
     raise ValueError('Please supply a data_dir')
   mnist = read_data_sets(DATA_DIR, one_hot=False)
-  images, labels = mnist.test.next_batch(BATCH_SIZE)
-  images = tf.reshape(images, [-1,28,28,1])
-
+  effective_batch_size = BATCH_SIZE
+  if eval_data:
+      images, labels = mnist.test.next_batch(BATCH_SIZE)
+      images = tf.reshape(images, [-1,28,28,1])
+  else:
+      if not rotation_only:
+          effective_batch_size = BATCH_SIZE//2
+      images, labels = mnist.train.next_batch(effective_batch_size)
+      radians_vector = 6.18*(np.random.random_sample(effective_batch_size,)) + 0.1
+      images = tf.reshape(images, [-1,28,28,1])
+      images_rotated = tf.contrib.image.rotate(images, radians_vector)
+      if rotation_only:
+          images = images_rotated
+      else:
+          images = tf.concat([images, images_rotated], 0)
+          labels = tf.concat([labels, labels], 0)
   return images, labels
 
 
