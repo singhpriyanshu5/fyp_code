@@ -49,6 +49,9 @@ parser.add_argument('--num_examples', type=int, default=10000,
 parser.add_argument('--run_once', type=bool, default=False,
                     help='Whether to run eval only once.')
 
+parser.add_argument('--rotation_only', type=bool, default=False,
+                    help='Whether to train the model on only rotated images or original plus the rotated images')
+
 BATCH_SIZE = mnist_rot_main.BATCH_SIZE
 
 
@@ -111,7 +114,7 @@ def evaluate():
   with tf.Graph().as_default() as g:
     # Get images and labels for CIFAR-10.
     eval_data = FLAGS.eval_data == 'test'
-    images, labels = mnist_rot_main.inputs(eval_data=eval_data)
+    images, labels = mnist_rot_main.inputs(eval_data=eval_data, rotation_only=FLAGS.rotation_only)
 
     # Build a Graph that computes the logits predictions from the
     # inference model.
