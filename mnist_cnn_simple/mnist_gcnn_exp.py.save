@@ -1,0 +1,267 @@
+import tensorflow as tf
+import numpy as np
+import time
+import collections
+
+from tensorflow.examples.tutorials.mnist import input_data
+
+import scipy
+import sys
+import os
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from gcnn_lib.grid_graph import grid_graph
+from gcnn_lib.coarsening import coarsen
+from gcnn_lib.coarsening import lmaxX
+from gcnn_lib.coarsening import perm_data
+from gcnn_lib.coarsening import lmaxX
+from gcnn_lib.coarsening import rescale_L
+
+mnist = input_data.read_data_sets('./data', one_hot=False) # load data in folder datasets/
+
+train_data = mnist.train.images.astype(np.float32)
+train_images = tf.reshape(train_data, [-1,28,28,1])
+#rotate each image by a random angle
+# radians_vector = 6.18*(np.random.random_sample(train_data.shape[0],)) + 0.1
+# images = tf.reshape(train_data, [-1,28,28,1])
+# images_rotated = tf.contrib.image.rotate(images, radians_vector)
+# images_rotated = tf.reshape(images_rotated, [-1, train_data.shape[1]])
+#
+# print(type(train_data))
+# print(train_data.shape)
+# print(type(images_rotated))
+# print(images_rotated.shape)
+
+# train_data = images_rotated
+val_data = mnist.validation.images.astype(np.float32)
+test_data = mnist.test.images.astype(np.float32)
+train_labels = mnist.train.labels
+val_labels = mnist.validation.labels
+test_labels = mnist.test.labels
+print(train_data.shape)
+print(train_labels.shape)
+print(val_data.shape)
+print(val_labels.shape)
+print(test_data.shape)
+print(test_labels.shape)
+
+# Construct graph
+t_start = time.time()
+grid_side = 28
+number_edges = 8
+metric = 'euclidean'
+A = grid_graph(grid_side,number_edges,metric) # create graph of Euclidean grid
+
+# Compute coarsened graphs
+coarsening_levels = 4
+num_vertices, L, perm = coarsen(A, coarsening_levels)
+
+# Compute max eigenvalue of graph Laplacians
+lmax = []
+for i in range(coarsening_levels):
+    lmax.append(lmaxX(L[i]))
+print('lmax: ' + str([lmax[i] for i in range(coarsening_levels)]))
+
+train_images = tf.Session().run(train_images)
+
+
+# Reindex nodes to satisfy a binary tree structure
+# train_data = perm_data(train_data, perm)
+val_data = perm_data(val_data, perm)
+test_data = perm_data(test_data, perm)
+
+print(train_data.shape)
+print(val_data.shape)
+print(test_data.shape)
+
+print('Execution time: {:.2f}s'.format(time.time() - t_start))
+# del perm
+
+class Graph_ConvNet_LeNet5(object):
+
+    # Constructor
+    def __init__(self, net_parameters):
+
+        print('Graph ConvNet: LeNet5')
+
+        # parameters
+        D, CL1_F, CL1_K, CL2_F, CL2_K, FC1_F, FC2_F = net_parameters
+
+        # init
+        self.WCL1 = self.init_weights([CL1_K, CL1_F],CL1_K,CL1_F)
+        self.bCL1 = tf.zeros([CL1_F],tf.float32)
+        self.CL1_F = CL1_F; self.CL1_K = CL1_K
+        self.WCL2 = self.init_weights([CL1_K*CL1_F,CL2_F],CL1_K*CL1_F,CL2_F)
+        self.bCL2 = tf.zeros([CL2_F],tf.float32)
+        self.CL2_F = CL2_F; self.CL2_K = CL2_K
+        self.WFC1 = self.init_weights([CL2_F*(D//16),FC1_F],CL2_F*(D//16),FC1_F)
+        self.bFC1 = tf.zeros([FC1_F],tf.float32)
+        self.WFC2 = self.init_weights([FC1_F,FC2_F],FC1_F,FC2_F)
+        self.bFC2 = tf.zeros([FC2_F],tf.float32)
+
+        # Variables for the computational graph
+        self.WCL1 = tf.Variable(self.WCL1)
+        self.bCL1 = tf.Variable(self.bCL1)
+        self.WCL2 = tf.Variable(self.WCL2)
+        self.bCL2 = tf.Variable(self.bCL2)
+        self.WFC1 = tf.Variable(self.WFC1)
+        self.bFC1 = tf.Variable(self.bFC1)
+        self.WFC2 = tf.Variable(self.WFC2)
+        self.bFC2 = tf.Variable(self.bFC2)
+
+
+    def init_weights(self, shape, Fin, Fout):
+
+        scale = tf.sqrt( 2.0/ (Fin+Fout) )
+        W = tf.random_uniform( shape, minval=-scale, maxval=scale )
+        return W
+
+
+    def graph_conv_cheby(self, x, W, L, lmax, Fout, K):
+
+        # parameters
+        # B = batch size
+        # V = nb vertices
+        # Fin = nb input features
+        # Fout = nb output features
+        # K = Chebyshev order & support size
+        B, V, Fin = x.get_shape(); B, V, Fin = int(B), int(V), int(Fin)
+
+        # rescale Laplacian
+        lmax = lmaxX(L)
+        L = rescale_L(L, lmax)
+
+        # scipimport tensorflow as tf
+import numpy as np
+import time
+import collections
+
+from tensorflow.examples.tutorials.mnist import input_data
+
+import scipy
+import sys
+import os
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
+from gcnn_lib.grid_graph import grid_graph
+from gcnn_lib.coarsening import coarsen
+from gcnn_lib.coarsening import lmaxX
+from gcnn_lib.coarsening import perm_data
+from gcnn_lib.coarsening import lmaxX
+from gcnn_lib.coarsening import rescale_L
+
+mnist = input_data.read_data_sets('./data', one_hot=False) # load data in folder datasets/
+
+train_data = mnist.train.images.astype(np.float32)
+train_images = tf.reshape(train_data, [-1,28,28,1])
+#rotate each image by a random angle
+# radians_vector = 6.18*(np.random.random_sample(train_data.shape[0],)) + 0.1
+# images = tf.reshape(train_data, [-1,28,28,1])
+# images_rotated = tf.contrib.image.rotate(images, radians_vector)
+# images_rotated = tf.reshape(images_rotated, [-1, train_data.shape[1]])
+#
+# print(type(train_data))
+# print(train_data.shape)
+# print(type(images_rotated))
+# print(images_rotated.shape)
+
+# train_data = images_rotated
+val_data = mnist.validation.images.astype(np.float32)
+test_data = mnist.test.images.astype(np.float32)
+train_labels = mnist.train.labels
+val_labels = mnist.validation.labels
+test_labels = mnist.test.labels
+print(train_data.shape)
+print(train_labels.shape)
+print(val_data.shape)
+print(val_labels.shape)
+print(test_data.shape)
+print(test_labels.shape)
+
+# Construct graph
+t_start = time.time()
+grid_side = 28
+number_edges = 8
+metric = 'euclidean'
+A = grid_graph(grid_side,number_edges,metric) # create graph of Euclidean grid
+
+# Compute coarsened graphs
+coarsening_levels = 4
+num_vertices, L, perm = coarsen(A, coarsening_levels)
+
+# Compute max eigenvalue of graph Laplacians
+lmax = []
+for i in range(coarsening_levels):
+    lmax.append(lmaxX(L[i]))
+print('lmax: ' + str([lmax[i] for i in range(coarsening_levels)]))
+
+train_images = tf.Session().run(train_images)
+
+
+# Reindex nodes to satisfy a binary tree structure
+# train_data = perm_data(train_data, perm)
+val_data = perm_data(val_data, perm)
+test_data = perm_data(test_data, perm)
+
+print(train_data.shape)
+print(val_data.shape)
+print(test_data.shape)
+
+print('Execution time: {:.2f}s'.format(time.time() - t_start))
+# del perm
+
+class Graph_ConvNet_LeNet5(object):
+
+    # Constructor
+    def __init__(self, net_parameters):
+
+        print('Graph ConvNet: LeNet5')
+
+        # parameters
+        D, CL1_F, CL1_K, CL2_F, CL2_K, FC1_F, FC2_F = net_parameters
+
+        # init
+        self.WCL1 = self.init_weights([CL1_K, CL1_F],CL1_K,CL1_F)
+        self.bCL1 = tf.zeros([CL1_F],tf.float32)
+        self.CL1_F = CL1_F; self.CL1_K = CL1_K
+        self.WCL2 = self.init_weights([CL1_K*CL1_F,CL2_F],CL1_K*CL1_F,CL2_F)
+        self.bCL2 = tf.zeros([CL2_F],tf.float32)
+        self.CL2_F = CL2_F; self.CL2_K = CL2_K
+        self.WFC1 = self.init_weights([CL2_F*(D//16),FC1_F],CL2_F*(D//16),FC1_F)
+        self.bFC1 = tf.zeros([FC1_F],tf.float32)
+        self.WFC2 = self.init_weights([FC1_F,FC2_F],FC1_F,FC2_F)
+        self.bFC2 = tf.zeros([FC2_F],tf.float32)
+
+        # Variables for the computational graph
+        self.WCL1 = tf.Variable(self.WCL1)
+        self.bCL1 = tf.Variable(self.bCL1)
+        self.WCL2 = tf.Variable(self.WCL2)
+        self.bCL2 = tf.Variable(self.bCL2)
+        self.WFC1 = tf.Variable(self.WFC1)
+        self.bFC1 = tf.Variable(self.bFC1)
+        self.WFC2 = tf.Variable(self.WFC2)
+        self.bFC2 = tf.Variable(self.bFC2)
+
+
+    def init_weights(self, shape, Fin, Fout):
+
+        scale = tf.sqrt( 2.0/ (Fin+Fout) )
+        W = tf.random_uniform( shape, minval=-scale, maxval=scale )
+        return W
+
+
+    def graph_conv_cheby(self, x, W, L, lmax, Fout, K):
+
+        # parameters
+        # B = batch size
+        # V = nb vertices
+        # Fin = nb input features
+        # Fout = nb output features
+        # K = Chebyshev order & support size
+        B, V, Fin = x.get_shape(); B, V, Fin = int(B), int(V), int(Fin)
+
+        # rescale Laplacian
+        lmax = lmaxX(L)
+        L = rescale_L(L, lmax)
+
+        # scip

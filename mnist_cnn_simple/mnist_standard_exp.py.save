@@ -1,0 +1,55 @@
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
+import numpy as np
+import collections
+import time
+import matplotlib.pyplot as plt
+from tensorflow.examples.tutorials.mnist import input_data
+import scipy
+
+mnist = input_data.read_data_sets("data/", one_hot=False)
+
+train_data = mnist.train.images.astype(np.float32)
+train_images = tf.reshape(train_data, [-1,28,28,1])
+radians_vector = [0.785]*train_data.shape[0]
+train_rotated = tf.contrib.image.rotate(train_images, radians_vector)
+
+val_data = mnist.validation.images.astype(np.float32)
+test_data = mnist.test.images.astype(np.float32)
+test_images = tf.reshape(test_data, [-1,28,28,1])
+
+
+train_labels = mnist.train.labels
+val_labels = mnist.validation.labels
+test_labels = mnist.test.labels
+
+# train_data = tf.Session().run(train_data)
+# #uncomment the following line to use the rotated test set
+# test_data = tf.Session().run(test_data)
+# for i in range(10):
+#     x_image = test_data[i].reshape([28,28])
+#     plt.gray()
+#     plt.imshow(x_image)
+#     plt.show()
+
+
+
+def lenet(inputs, drop_prob=1.0):
+    with slim.arg_scope([slim.conv2d, slim.fully_connected],
+                      activation_fn=tf.nn.relu,
+                      weights_initializer=tf.truncated_normal_initializer(0.0, 0.01),
+                      weights_regularizer=slim.l2_regularizer(0.0005)):
+      net = slim.conv2d(inputs, 32, [5,5], stride=[1,1], padding="SAME", scope='conv1')
+      net = slim.max_pool2d(net, [2, 2], stride=[2,2], padding="SAME", scope='pool1')
+      net = slim.conv2d(net, 64, [5,5], stride=[1,1], padding="SAME", scope='conv2')
+      net = slim.max_pool2d(net, [2, 2], stride=[2,2], padding="SAME", scope='pool2')
+      net = slim.fully_connected(slim.flatten(net), 1024, scope='fc1')
+      net = slim.dropout(net, drop_prob, scope='dropout1')
+      net = slim.fully_connected(net, 10, activation_fn=None, scope='fc2')
+    return net
+
+# Input layer
+x  = tf.placeholder(tf.float32, [None,28,28,1], name='x')
+y_ = tf.placeholder(tf.int32, [None],  name='y_')
+
+# Dropout

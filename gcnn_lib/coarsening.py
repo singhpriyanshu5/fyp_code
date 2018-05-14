@@ -26,15 +26,15 @@ def laplacian(W, normalized=True):
     assert type(L) is scipy.sparse.csr.csr_matrix
     return L
 
-    
-    
+
+
 def rescale_L(L, lmax=2):
     """Rescale the Laplacian eigenvalues in [-1,1]."""
     M, M = L.shape
     I = scipy.sparse.identity(M, format='csr', dtype=L.dtype)
     L /= lmax * 2
     L -= I
-    return L 
+    return L
 
 
 def lmaxX(L):
@@ -45,26 +45,28 @@ def lmaxX(L):
 
 # graph coarsening with Metis-like technique
 def coarsen(A, levels):
-    
+
     graphs, parents = metis(A, levels)
     perms = compute_perm(parents)
 
     laplacians = []
+    num_vertices = []
     for i,A in enumerate(graphs):
         M, M = A.shape
-            
+        print("metis shape for level {} = {}".format(i, A.shape))
         if i < levels:
             A = perm_adjacency(A, perms[i])
 
         A = A.tocsr()
         A.eliminate_zeros()
         Mnew, Mnew = A.shape
+        num_vertices.append(Mnew)
         print('Layer {0}: M_{0} = |V| = {1} nodes ({2} added), |E| = {3} edges'.format(i, Mnew, Mnew-M, A.nnz//2))
 
         L = laplacian(A, normalized=True)
         laplacians.append(L)
-        
-    return laplacians, perms[0] if len(perms) > 0 else None
+
+    return num_vertices, laplacians, perms[0] if len(perms) > 0 else None
 def metis(W, levels, rid=None):
     """
     Coarsen a graph multiple times using the METIS algorithm.
@@ -86,16 +88,16 @@ def metis(W, levels, rid=None):
     """
 
     N, N = W.shape
-    
+
     # first approach
     if rid is None:
         rid = np.random.permutation(range(N))
-        
-    # second approach 
+
+    # second approach
     ss = np.array(W.sum(axis=0)).squeeze()
     rid = np.argsort(ss)
-        
-        
+
+
     parents = []
     degree = W.sum(axis=0) - W.diagonal()
     graphs = []
@@ -122,7 +124,7 @@ def metis(W, levels, rid=None):
         cc = idx_row
         rr = idx_col
         vv = val
-        
+
         # TO BE SPEEDUP
         if not (list(cc)==list(np.sort(cc))):
             tmp=cc
@@ -133,7 +135,7 @@ def metis(W, levels, rid=None):
         parents.append(cluster_id)
 
         # TO DO
-        # COMPUTE THE SIZE OF THE SUPERNODES AND THEIR DEGREE 
+        # COMPUTE THE SIZE OF THE SUPERNODES AND THEIR DEGREE
         #supernode_size = full(   sparse(cluster_id,  ones(N,1) , supernode_size )     )
         #print(cluster_id)
         #print(supernode_size)
@@ -147,21 +149,21 @@ def metis(W, levels, rid=None):
         # CSR is more appropriate: row,val pairs appear multiple times
         W = scipy.sparse.csr_matrix((nvv,(nrr,ncc)), shape=(Nnew,Nnew))
         W.eliminate_zeros()
-        
+
         #print('Graclus coarsening with Xavier version')
         #W.setdiag(0)
         #print('h2',type(W),W.nnz) # csr csr_matrix.transpose
         #W = (W + sparse.csr_matrix(W.T))/ 2.0
-        #W = (W + scipy.sparse.csr_matrix.transpose(W))/ 2.0  
+        #W = (W + scipy.sparse.csr_matrix.transpose(W))/ 2.0
         #print('h3',type(W),W.nnz)
         #W.eliminate_zeros()
         #print('h4',type(W),W.nnz)
         #print('check symmetry:',np.abs(W - W.T).mean())
-        
-        
-        
-        
-        
+
+
+
+
+
         # Add new graph to the list of all coarsened graphs
         graphs.append(W)
         N, N = W.shape
@@ -214,11 +216,11 @@ def metis_one_level(rr,cc,vv,rid,weights):
                 if marked[nid]:
                     tval = 0.0
                 else:
-                    
+
                     # First approach
                     if 2==1:
                         tval = vv[rs+jj] * (1.0/weights[tid] + 1.0/weights[nid])
-                    
+
                     # Second approach
                     if 1==1:
                         Wij = vv[rs+jj]
@@ -230,18 +232,18 @@ def metis_one_level(rr,cc,vv,rid,weights):
                         #tval = Wij * ( 1./di + 1./dj )
                     #tval = Wij / ( di + dj )
                     #tval = Wij * ( 1./di + 1./dj )
-                    
+
                     #if (di>0.0) & (dj>0.0):
                     #    tval = (2.*Wij + Wii + Wjj) / ( di + dj )
                     #else:
                     #    tval = 0.0
                     #print(tval)
-                    
+
                     #if (weights[tid]>0.0) & (weights[nid]>0.0):
                     #    tval = vv[rs+jj] * ( 1.0/(weights[tid] + weights[nid]) )
                     #else:
                     #    tval = 0.0
-                    
+
                 if tval > wmax:
                     #print('h1',tval)
                     wmax = tval
@@ -335,8 +337,8 @@ def perm_adjacency(A, indices):
     A.row = np.array(perm)[A.row]
     A.col = np.array(perm)[A.col]
 
-    #print(np.abs(A - A.T).mean())
-    assert np.abs(A - A.T).mean() < 1e-8 # 1e-9
+    print(np.abs(A - A.T).mean())
+    assert np.abs(A - A.T).mean() < 1e-6 # 1e-9
     assert type(A) is scipy.sparse.coo.coo_matrix
     return A
 
@@ -364,4 +366,3 @@ def perm_data(x, indices):
         else:
             xnew[:,i] = np.zeros(N)
     return xnew
-

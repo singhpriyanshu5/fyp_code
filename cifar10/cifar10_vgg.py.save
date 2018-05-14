@@ -1,0 +1,61 @@
+import tensorflow as tf
+import tensorflow.contrib.slim as slim
+import numpy as np
+import collections
+import time
+import os
+
+import scipy
+
+import cifar10_input
+from tensorflow.examples.tutorials.mnist import input_data
+
+DATA_DIR = "./data"
+# mnist = input_data.read_data_sets("data/", one_hot=False)
+
+cifar10_input.maybe_download_and_extract(DATA_DIR)
+
+# train_data = mnist.train.images.astype(np.float32)
+train_data, train_labels = cifar10_input.inputs(False, os.path.join(DATA_DIR, 'cifar-10-batches-bin'), cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN+cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_VAL)
+
+test_data, test_labels = cifar10_input.inputs(True, os.path.join(DATA_DIR, 'cifar-10-batches-bin'), cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL)
+#test_data = tf.Session().run(test_data)
+#rotate each image by a random angle
+
+val_data = tf.slice(train_data, [cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN, 0, 0, 0], [-1, -1, -1, -1])
+val_labels = tf.slice(train_labels, [cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN], [-1])
+
+
+print('train_data', train_data)
+print('train_data only train', train_data[:cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN,:,:,:])
+print('val_data', val_data)
+
+#radians_vector = 6.18*(np.random.random_sample(cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN,)) + 0.1
+#train_data = tf.reshape(train_data, [-1,24,24,3])
+#train_data = tf.contrib.image.rotate(train_data[:cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN,:,:,:], radians_vector)
+#Do we need the reshape back to 784 in this case since we are converting to 28,28
+#before passing to lenet
+
+#train_data = tf.contrib.layers.flatten(train_data)
+
+#radians_vector_val = 6.18*(np.random.random_sample(cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_VAL,)) + 0.1
+#val_data = tf.reshape(val_data, [-1,24,24,3])
+#val_data = tf.contrib.image.rotate(val_data, radians_vector_val)
+
+#val_data = tf.contrib.layers.flatten(val_data)
+
+#radians_vector_test = 6.18*(np.random.random_sample(cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL,)) + 0.1
+#test_data = tf.reshape(test_data, [-1,24,24,3])
+#test_data = tf.contrib.image.rotate(test_data, radians_vector_test)
+
+#test_data = tf.contrib.layers.flatten(test_data)
+
+#val_data = tf.slice(train_data, [cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN, 0], [-1,-1])
+#val_labels = tf.slice(train_labels, [cifar10_input.NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN], [-1])
+
+#train_data = tf.Session().run(train_data)
+
+# images_rotated = tf.reshape(images_rotated, [-1, train_data.shape[1]])
+
+# train_data = images_rotated
+# val_data = mnist.validation.images.astype(np.float32)
